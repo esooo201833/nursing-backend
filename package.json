@@ -3,5 +3,6 @@
   "version": "1.0.0",
   "scripts": {
     "start": "cd back-end && node server.js"
-  }
+  },
+  "dependencies": {}
 }

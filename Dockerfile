@@ -13,6 +13,9 @@ RUN npm install
 # Copy back-end files
 COPY back-end .
 
+# Copy frontend public folder
+COPY public ../public
+
 # Expose port (Railway will use process.env.PORT)
 EXPOSE 3000
 

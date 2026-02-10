@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register - CarePlus</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+  <!-- Navbar -->
+  <header class="navbar">
+    <div class="container">
+      <div class="logo">Care<span>Plus</span></div>
+      <nav>
+        <ul class="nav-links">
+          <li><a href="index.html">Home</a></li>
+          <li><a href="services.html">Services</a></li>
+          <li><a href="booking.html">Booking</a></li>
+          <li><a href="contact.html">Contact</a></li>
+          <li><a href="login.html" class="btn-login">Login</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Page Header -->
+  <section class="page-header">
+    <div class="container">
+      <h1>Register</h1>
+      <p class="subtitle">Create a new account to book our services</p>
+    </div>
+  </section>
+
+  <!-- Register Form -->
+  <section class="auth-page">
+    <div class="container auth-container">
+      <form class="auth-form" id="registerForm">  <!-- <-- ضفت id -->
+        <h2>Create Your Account</h2>
+
+        <label for="name">Full Name</label>
+        <input type="text" id="name" name="name" placeholder="Your Full Name" required>  <!-- <-- name -->
+
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" placeholder="you@example.com" required>  <!-- <-- name -->
+
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" placeholder="********" required>  <!-- <-- name -->
+
+        <label for="confirm-password">Confirm Password</label>
+        <input type="password" id="confirm-password" placeholder="********" required>
+
+        <!-- Role (مخفي - default user) -->
+        <input type="hidden" name="role" value="user">
+
+        <button type="submit" class="btn-primary">Register</button>
+
+        <p>Already have an account? <a href="login.html">Login here</a></p>
+      </form>
+    </div>
+  </section>
+
+  <!-- JS -->
+  <script>
+    console.log("🔥 Script loaded!");
+
+    document.addEventListener("DOMContentLoaded", function() {
+      console.log("📄 DOM loaded!");
+
+      const form = document.getElementById("registerForm");
+      console.log("📝 Form found:", form);
+
+      if (!form) {
+        console.error("❌ Form not found!");
+        return;
+      }
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        console.log("🚀 Form submitted!");
+
+        const name = document.getElementById('name').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value.trim();
+        const confirmPassword = document.getElementById('confirm-password').value.trim();
+
+        // Validation
+        if(!name || !email || !password || !confirmPassword){
+          alert('Please fill in all fields');
+          return;
+        }
+
+        if(password !== confirmPassword){
+          alert('Passwords do not match');
+          return;
+        }
+
+        const data = {
+          name: name,
+          email: email,
+          password: password,
+          role: "user"
+        };
+
+        console.log("📤 Sending:", data);
+
+        try {
+          const res = await fetch("/api/auth/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+          });
+
+          console.log("📥 Status:", res.status);
+          const result = await res.json();
+          console.log("📥 Result:", result);
+
+          if (res.ok) {
+            alert(result.message);
+            form.reset();
+          } else {
+            alert("Error: " + result.message);
+          }
+
+        } catch (err) {
+          console.error("❌ Fetch error:", err);
+          alert("Error connecting to server!");
+        }
+      });
+    });
+  </script>
+
+  <script src="assets/js/footer.js"></script>
+
+</body>
+</html>

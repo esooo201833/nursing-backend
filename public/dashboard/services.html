@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Services - CarePlus Admin</title>
+  <link rel="stylesheet" href="assets/css/dashboard.css">
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">Care<span>Plus</span></div>
+    <ul class="sidebar-menu">
+      <li><a href="index.html">Dashboard</a></li>
+      <li><a href="bookings.html">Bookings</a></li>
+      <li><a href="services.html" class="active">Services</a></li>
+      <li><a href="users.html">Users</a></li>
+      <li><a href="profile.html">Profile</a></li>
+      <li><a href="#" onclick="logout()">Logout</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    
+    <!-- Topbar -->
+    <header class="topbar">
+      <h1>Manage Services</h1>
+      <div class="user-info">
+        <span id="adminName">Admin</span>
+      </div>
+    </header>
+
+    <!-- Add New Service -->
+    <section class="bookings-table">
+      <h2>Add New Service</h2>
+      <form id="addServiceForm">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+          
+          <div style="grid-column: 1 / -1;">
+            <label style="display: block; margin-bottom: 8px; color: var(--text-muted); font-weight: 500;">Service Name</label>
+            <input type="text" id="serviceName" required style="width: 100%; padding: 12px 15px; border: 2px solid #1f2235; border-radius: 12px; background: #141a2b; color: var(--text-main); font-size: 15px;">
+          </div>
+          
+          <div style="grid-column: 1 / -1;">
+            <label style="display: block; margin-bottom: 8px; color: var(--text-muted); font-weight: 500;">Description</label>
+            <textarea id="serviceDescription" rows="3" required style="width: 100%; padding: 12px 15px; border: 2px solid #1f2235; border-radius: 12px; background: #141a2b; color: var(--text-main); font-size: 15px; resize: vertical;"></textarea>
+          </div>
+          
+          <div>
+            <label style="display: block; margin-bottom: 8px; color: var(--text-muted); font-weight: 500;">Price ($)</label>
+            <input type="number" id="servicePrice" min="0" value="0" style="width: 100%; padding: 12px 15px; border: 2px solid #1f2235; border-radius: 12px; background: #141a2b; color: var(--text-main); font-size: 15px;">
+          </div>
+          
+          <div>
+            <label style="display: block; margin-bottom: 8px; color: var(--text-muted); font-weight: 500;">Duration</label>
+            <input type="text" id="serviceDuration" placeholder="e.g. 1 hour" style="width: 100%; padding: 12px 15px; border: 2px solid #1f2235; border-radius: 12px; background: #141a2b; color: var(--text-main); font-size: 15px;">
+          </div>
+          
+          <div>
+            <label style="display: block; margin-bottom: 8px; color: var(--text-muted); font-weight: 500;">Category</label>
+            <select id="serviceCategory" style="width: 100%; padding: 12px 15px; border: 2px solid #1f2235; border-radius: 12px; background: #141a2b; color: var(--text-main); font-size: 15px;">
+              <option value="nursing">Nursing</option>
+              <option value="medical">Medical</option>
+              <option value="therapy">Therapy</option>
+              <option value="equipment">Equipment</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary" style="margin-top: 20px;">Add Service</button>
+      </form>
+    </section>
+
+    <!-- Services List -->
+    <section class="bookings-table">
+      <h2>All Services</h2>
+      <div id="servicesContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+        Loading...
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // ✅ التحقق من Admin
+    const adminId = localStorage.getItem('userId');
+    const userRole = localStorage.getItem('userRole');
+
+    if (!adminId || userRole !== 'admin') {
+      alert("Access denied! Admins only.");
+      window.location.href = "../login.html";
+    }
+
+    document.getElementById('adminName').textContent = localStorage.getItem('userName');
+
+    // ✅ إضافة Service جديد
+    document.getElementById('addServiceForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const data = {
+        adminId: adminId,
+        name: document.getElementById('serviceName').value,
+        description: document.getElementById('serviceDescription').value,
+        price: document.getElementById('servicePrice').value,
+        duration: document.getElementById('serviceDuration').value,
+        category: document.getElementById('serviceCategory').value
+      };
+
+      try {
+        const res = await fetch('/api/admin/create-service', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        const result = await res.json();
+
+        if (res.ok) {
+          alert("Service added successfully! ✅");
+          document.getElementById('addServiceForm').reset();
+          loadServices();
+        } else {
+          alert("Error: " + result.message);
+        }
+
+      } catch (err) {
+        console.error("Error:", err);
+        alert("Error adding service!");
+      }
+    });
+
+    // ✅ جيب كل Services
+    async function loadServices() {
+      try {
+        const res = await fetch('/api/admin/services');
+        const services = await res.json();
+
+        const container = document.getElementById('servicesContainer');
+        
+        if (services.length === 0) {
+          container.innerHTML = '<p style="color: var(--text-muted);">No services found</p>';
+          return;
+        }
+
+        container.innerHTML = services.map(service => `
+          <div style="background: var(--bg-card); padding: 20px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); border: 1px solid ${service.isActive ? 'transparent' : '#e74c3c'}; opacity: ${service.isActive ? '1' : '0.6'};">
+            
+            <span style="display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; background: ${service.isActive ? 'rgba(46,204,113,0.2)' : 'rgba(231,76,60,0.2)'}; color: ${service.isActive ? '#2ecc71' : '#e74c3c'}; border: 1px solid ${service.isActive ? '#2ecc71' : '#e74c3c'}; margin-bottom: 10px;">
+              ${service.isActive ? 'Active' : 'Inactive'}
+            </span>
+            
+            <h3 style="margin: 10px 0; color: var(--text-main); font-size: 20px;">${service.name}</h3>
+            <p style="color: var(--text-muted); margin-bottom: 15px; line-height: 1.6;">${service.description}</p>
+            
+            <div style="font-size: 24px; font-weight: bold; color: var(--primary); margin: 15px 0;">$${service.price}</div>
+            
+            <div style="color: var(--text-muted); font-size: 14px; margin-bottom: 15px;">
+              <span>⏱️ ${service.duration || '1 hour'}</span> | 
+              <span>📂 ${service.category}</span>
+            </div>
+            
+            <div>
+              <button class="btn-toggle" onclick="toggleService('${service._id}', ${!service.isActive})">
+                ${service.isActive ? 'Deactivate' : 'Activate'}
+              </button>
+              <button class="btn-delete" onclick="deleteService('${service._id}', '${service.name}')">
+                Delete
+              </button>
+            </div>
+          </div>
+        `).join('');
+
+      } catch (err) {
+        console.error("Error loading services:", err);
+      }
+    }
+
+    // ✅ تفعيل/تعطيل Service
+    async function toggleService(serviceId, newStatus) {
+      try {
+        const res = await fetch(`/api/admin/update-service/${serviceId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            adminId: adminId,
+            isActive: newStatus 
+          })
+        });
+
+        const result = await res.json();
+        
+        if (res.ok) {
+          loadServices();
+        } else {
+          alert("Error: " + result.message);
+        }
+
+      } catch (err) {
+        console.error("Error:", err);
+      }
+    }
+
+    // ✅ حذف Service
+    async function deleteService(serviceId, name) {
+      if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+
+      try {
+        const res = await fetch(`/api/admin/delete-service/${serviceId}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ adminId: adminId })
+        });
+
+        const result = await res.json();
+        
+        if (res.ok) {
+          alert(result.message);
+          loadServices();
+        } else {
+          alert("Error: " + result.message);
+        }
+
+      } catch (err) {
+        console.error("Error:", err);
+      }
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = "../login.html";
+    }
+
+    loadServices();
+  </script>
+
+</body>
+</html>

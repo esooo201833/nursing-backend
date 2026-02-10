@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Orders - CarePlus Staff</title>
+  <link rel="stylesheet" href="assets/css/dashboard.css">
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">Care<span>Plus</span></div>
+    <ul class="sidebar-menu">
+      <li><a href="staff-dashboard.html" class="active">My Orders</a></li>
+      <li><a href="profile.html">Profile</a></li>
+      <li><a href="#" onclick="logout()">Logout</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    
+    <!-- Topbar -->
+    <header class="topbar">
+      <h1>My Assigned Orders</h1>
+      <div class="user-info">
+        <span id="staffName">Loading...</span>
+        <small id="staffRole">Loading...</small>
+      </div>
+    </header>
+
+    <!-- Stats -->
+    <section class="stats-cards">
+      <div class="stat-card">
+        <h3 id="pendingCount">0</h3>
+        <span>Pending</span>
+      </div>
+      <div class="stat-card">
+        <h3 id="inProgressCount">0</h3>
+        <span>In Progress</span>
+      </div>
+      <div class="stat-card">
+        <h3 id="completedCount">0</h3>
+        <span>Completed</span>
+      </div>
+    </section>
+
+    <!-- Orders Table -->
+    <section class="bookings-table">
+      <h2>Today's Orders</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Patient</th>
+            <th>Service</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Address</th>
+            <th>Phone</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="ordersTableBody">
+          <tr><td colspan="8" style="text-align: center;">Loading...</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <!-- Report Modal -->
+  <div id="reportModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000;">
+    <div style="background: var(--bg-card); margin: 50px auto; padding: 30px; width: 90%; max-width: 600px; border-radius: 15px; border: 1px solid var(--primary); max-height: 90vh; overflow-y: auto;">
+      <h3 style="margin-bottom: 20px; color: var(--text-main);">Submit Visit Report</h3>
+      
+      <div style="background: #141a2b; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+        <p id="reportPatientInfo" style="color: var(--text-muted); margin: 0;"></p>
+      </div>
+
+      <label style="display: block; margin-bottom: 8px; color: var(--text-muted);">Visit Completed?</label>
+      <select id="visitCompleted" style="width: 100%; padding: 12px; border: 2px solid #1f2235; border-radius: 12px; background: #141a2b; color: var(--text-main); margin-bottom: 20px;">
+        <option value="true">Yes</option>
+        <option value="false">No</option>
+      </select>
+
+      <label style="display: block; margin-bottom: 8px; color: var(--text-muted);">Patient Condition</label>
+      <input type="text" id="patientCondition" placeholder="e.g. Stable, Improving, Critical" style="width: 100%; padding: 12px; border: 2px solid #1f2235; border-radius: 12px; background: #141a2b; color: var(--text-main); margin-bottom: 20px;">
+
+      <label style="display: block; margin-bottom: 8px; color: var(--text-muted);">Medications Given</label>
+      <textarea id="medications" rows="3" placeholder="List medications..." style="width: 100%; padding: 12px; border: 2px solid #1f2235; border-radius: 12px; background: #141a2b; color: var(--text-main); margin-bottom: 20px; resize: vertical;"></textarea>
+
+      <label style="display: block; margin-bottom: 8px; color: var(--text-muted);">Notes</label>
+      <textarea id="visitNotes" rows="3" placeholder="Additional notes..." style="width: 100%; padding: 12px; border: 2px solid #1f2235; border-radius: 12px; background: #141a2b; color: var(--text-main); margin-bottom: 20px; resize: vertical;"></textarea>
+
+      <label style="display: block; margin-bottom: 8px; color: var(--text-muted);">Next Visit Required?</label>
+      <select id="nextVisitRequired" onchange="toggleNextVisitDate()" style="width: 100%; padding: 12px; border: 2px solid #1f2235; border-radius: 12px; background: #141a2b; color: var(--text-main); margin-bottom: 20px;">
+        <option value="false">No</option>
+        <option value="true">Yes</option>
+      </select>
+
+      <div id="nextVisitDateDiv" style="display: none; margin-bottom: 20px;">
+        <label style="display: block; margin-bottom: 8px; color: var(--text-muted);">Next Visit Date</label>
+        <input type="date" id="nextVisitDate" style="width: 100%; padding: 12px; border: 2px solid #1f2235; border-radius: 12px; background: #141a2b; color: var(--text-main);">
+      </div>
+
+      <div style="display: flex; gap: 15px;">
+        <button onclick="submitReport()" class="btn-primary" style="flex: 1;">Submit Report</button>
+        <button onclick="closeReportModal()" class="btn-cancel" style="flex: 1;">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ========== Global Variables ==========
+    const staffId = localStorage.getItem('userId');
+    const staffRole = localStorage.getItem('userRole');
+    const staffName = localStorage.getItem('userName');
+    let currentOrderId = null;
+    let allOrders = [];
+
+    console.log("🔍 Debug - staffId:", staffId);
+    console.log("🔍 Debug - staffRole:", staffRole);
+    console.log("🔍 Debug - staffName:", staffName);
+
+    // ========== Check Login ==========
+    if (!staffId) {
+      alert("Please login first!");
+      window.location.href = "../login.html";
+    }
+
+    if (staffRole !== 'doctor' && staffRole !== 'nurse') {
+      alert("Access denied! Staff only.");
+      window.location.href = "../login.html";
+    }
+
+    // ========== Display Info ==========
+    document.getElementById('staffName').textContent = staffName || 'Staff';
+    document.getElementById('staffRole').textContent = staffRole || 'Staff';
+
+    // ========== Load Orders ==========
+    async function loadOrders() {
+      try {
+        console.log("📤 Fetching orders for staffId:", staffId);
+        
+        if (!staffId) {
+          console.error("❌ No staffId found!");
+          alert("Session expired! Please login again.");
+          window.location.href = "../login.html";
+          return;
+        }
+        
+        const res = await fetch(`/api/bookings/my-orders/${staffId}`);
+        
+        console.log("📥 Response status:", res.status);
+        
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error("❌ Server error:", errorText);
+          throw new Error(`Server returned ${res.status}: ${errorText}`);
+        }
+        
+        const orders = await res.json();
+        
+        console.log("📥 Orders:", orders);
+        allOrders = orders;
+        
+        renderOrders(orders);
+        updateStats(orders);
+
+      } catch (err) {
+        console.error("❌ Error loading orders:", err);
+        document.getElementById('ordersTableBody').innerHTML = `
+          <tr><td colspan="8" style="text-align: center; color: red;">
+            Error: ${err.message}<br>
+            <button onclick="loadOrders()" style="margin-top: 10px; padding: 8px 16px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer;">Retry</button>
+          </td></tr>
+        `;
+      }
+    }
+
+    // ========== Render Orders ==========
+    function renderOrders(orders) {
+      const tbody = document.getElementById('ordersTableBody');
+      
+      if (orders.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center;">No orders assigned yet</td></tr>`;
+        return;
+      }
+
+      const sortedOrders = orders.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      tbody.innerHTML = sortedOrders.map(order => {
+        const statusClass = getStatusClass(order.status);
+        const isToday = new Date(order.date).toDateString() === new Date().toDateString();
+        const todayBadge = isToday ? '<span style="background: var(--primary); color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 10px;">TODAY</span>' : '';
+        
+        let actions = '';
+        if (order.status === 'assigned') {
+          actions = `<button class="btn-approve" onclick="startOrder('${order._id}')">Start Visit</button>`;
+        } else if (order.status === 'in-progress') {
+          actions = `<button class="btn-primary" onclick="openReportModal('${order._id}', '${order.patientName}', '${order.service}')">Complete & Report</button>`;
+        } else if (order.status === 'completed') {
+          actions = `<span style="color: #2ecc71;">✓ Done</span>`;
+        }
+
+        return `
+          <tr style="${isToday ? 'background: rgba(20,179,162,0.1);' : ''}">
+            <td data-label="Patient">
+              ${order.patientName} ${todayBadge}
+              ${order.report && order.report.visited ? '<span style="color: #2ecc71; margin-left: 5px;">✓</span>' : ''}
+            </td>
+            <td data-label="Service">${order.service}</td>
+            <td data-label="Date">${new Date(order.date).toLocaleDateString()}</td>
+            <td data-label="Time">${order.time}</td>
+            <td data-label="Address">${order.address}</td>
+            <td data-label="Phone">${order.phone || '-'}</td>
+            <td data-label="Status"><span class="status-badge ${statusClass}">${order.status}</span></td>
+            <td data-label="Action">${actions}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function getStatusClass(status) {
+      const classes = {
+        'assigned': 'status-assigned',
+        'in-progress': 'status-progress',
+        'completed': 'status-completed'
+      };
+      return classes[status] || '';
+    }
+
+    // ========== Update Stats ==========
+    function updateStats(orders) {
+      document.getElementById('pendingCount').textContent = orders.filter(o => o.status === 'assigned').length;
+      document.getElementById('inProgressCount').textContent = orders.filter(o => o.status === 'in-progress').length;
+      document.getElementById('completedCount').textContent = orders.filter(o => o.status === 'completed').length;
+    }
+
+    // ========== Start Order ==========
+    async function startOrder(orderId) {
+      if (!confirm("Start this visit?")) return;
+
+      try {
+        const res = await fetch(`/api/bookings/update-order/${orderId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            status: 'in-progress',
+            staffId: staffId
+          })
+        });
+
+        const result = await res.json();
+        
+        if (res.ok) {
+          alert("Visit started! ✅");
+          loadOrders();
+        } else {
+          alert("Error: " + result.message);
+        }
+      } catch (err) {
+        console.error("Error:", err);
+        alert("Error starting visit!");
+      }
+    }
+
+    // ========== Report Modal ==========
+    function openReportModal(orderId, patientName, service) {
+      currentOrderId = orderId;
+      document.getElementById('reportPatientInfo').textContent = `${patientName} - ${service}`;
+      document.getElementById('reportModal').style.display = 'block';
+    }
+
+    function closeReportModal() {
+      document.getElementById('reportModal').style.display = 'none';
+      currentOrderId = null;
+      document.getElementById('visitCompleted').value = 'true';
+      document.getElementById('patientCondition').value = '';
+      document.getElementById('medications').value = '';
+      document.getElementById('visitNotes').value = '';
+      document.getElementById('nextVisitRequired').value = 'false';
+      document.getElementById('nextVisitDateDiv').style.display = 'none';
+    }
+
+    function toggleNextVisitDate() {
+      const required = document.getElementById('nextVisitRequired').value === 'true';
+      document.getElementById('nextVisitDateDiv').style.display = required ? 'block' : 'none';
+    }
+
+    // ========== Submit Report ==========
+    async function submitReport() {
+      if (!currentOrderId) {
+        alert("Error: No order selected");
+        return;
+      }
+
+      const report = {
+        visited: document.getElementById('visitCompleted').value === 'true',
+        patientCondition: document.getElementById('patientCondition').value,
+        medications: document.getElementById('medications').value,
+        notes: document.getElementById('visitNotes').value,
+        nextVisitRequired: document.getElementById('nextVisitRequired').value === 'true',
+        nextVisitDate: document.getElementById('nextVisitDate').value || null
+      };
+
+      try {
+        const res = await fetch(`/api/bookings/update-order/${currentOrderId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            status: 'completed',
+            report: report,
+            staffId: staffId
+          })
+        });
+
+        const result = await res.json();
+        
+        if (res.ok) {
+          alert("Report submitted successfully! ✅");
+          closeReportModal();
+          loadOrders();
+        } else {
+          alert("Error: " + result.message);
+        }
+      } catch (err) {
+        console.error("Error:", err);
+        alert("Error submitting report!");
+      }
+    }
+
+    // ========== Logout ==========
+    function logout() {
+      localStorage.clear();
+      window.location.href = "../login.html";
+    }
+
+    // ========== Initialize ==========
+    loadOrders();
+    setInterval(loadOrders, 30000);
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Profile - CarePlus</title>
+  <link rel="stylesheet" href="assets/css/dashboard.css">
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">Care<span>Plus</span></div>
+    <ul class="sidebar-menu">
+      <li><a href="index.html">Dashboard</a></li>
+      <li><a href="bookings.html">Bookings</a></li>
+      <li><a href="services.html">Services</a></li>
+      <li><a href="profile.html" class="active">Profile</a></li>
+      <li><a href="#">Logout</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <h1>Profile</h1>
+      <div class="user-info">
+        <span>Admin</span>
+      </div>
+    </header>
+
+    <!-- Profile Form -->
+    <section class="profile-form-section">
+      <h2>Update Your Profile</h2>
+      <form class="profile-form">
+
+        <label for="name">Full Name</label>
+        <input type="text" id="name" placeholder="Enter your full name" value="Admin" required>
+
+        <label for="email">Email</label>
+        <input type="text" id="email" placeholder="Enter your email" value="admin@careplus.com" required>
+
+        <label for="password">New Password</label>
+        <input type="text" id="password" placeholder="Enter new password" required>
+
+        <label for="confirm-password">Confirm Password</label>
+        <input type="text" id="confirm-password" placeholder="Confirm new password" required>
+
+        <button type="submit" class="btn-primary">Update Profile</button>
+      </form>
+    </section>
+
+  </main>
+
+  <!-- JS -->
+  <script>
+    const profileForm = document.querySelector('.profile-form');
+    profileForm.addEventListener('submit', function(e){
+      e.preventDefault();
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const confirmPassword = document.getElementById('confirm-password').value.trim();
+
+      if(!name || !email || !password || !confirmPassword){
+        alert("Please fill all fields!");
+        return;
+      }
+
+      if(password !== confirmPassword){
+        alert("Passwords do not match!");
+        return;
+      }
+
+      alert("Profile updated successfully! (mock)");
+      profileForm.reset();
+    });
+  </script>
+
+</body>
+</html>

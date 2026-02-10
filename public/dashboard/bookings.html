@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Bookings - CarePlus</title>
+  <link rel="stylesheet" href="assets/css/dashboard.css">
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">Care<span>Plus</span></div>
+    <ul class="sidebar-menu">
+      <li><a href="index.html">Dashboard</a></li>
+      <li><a href="bookings.html" class="active">Bookings</a></li>
+      <li><a href="services.html">Services</a></li>
+      <li id="admin-only-users" style="display: none;"><a href="users.html">Users</a></li>
+      <li><a href="profile.html">Profile</a></li>
+      <li><a href="#" onclick="logout()">Logout</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    
+    <!-- Topbar -->
+    <header class="topbar">
+      <h1>Bookings</h1>
+      <div class="user-info">
+        <span id="userName">Loading...</span>
+        <small id="userRole">Loading...</small>
+      </div>
+    </header>
+
+    <!-- Stats Cards (Admin Only) -->
+    <section class="stats-cards" id="admin-stats" style="display: none;">
+      <div class="stat-card">
+        <h3 id="totalBookings">0</h3>
+        <span>Total Bookings</span>
+      </div>
+      <div class="stat-card">
+        <h3 id="pendingBookings">0</h3>
+        <span>Pending</span>
+      </div>
+      <div class="stat-card">
+        <h3 id="assignedBookings">0</h3>
+        <span>Assigned</span>
+      </div>
+    </section>
+
+    <!-- Bookings Table -->
+    <section class="bookings-table">
+      <h2 id="tableTitle">All Bookings</h2>
+      
+      <!-- Filter (Admin Only) -->
+      <div class="filters" id="admin-filters" style="display: none; margin-bottom: 20px;">
+        <select id="statusFilter" onchange="filterBookings()" style="padding: 10px; border-radius: 8px; background: #141a2b; color: var(--text-main); border: 2px solid #1f2235;">
+          <option value="all">All Status</option>
+          <option value="pending">Pending</option>
+          <option value="assigned">Assigned</option>
+          <option value="in-progress">In Progress</option>
+          <option value="completed">Completed</option>
+        </select>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Patient</th>
+            <th>Service</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Status</th>
+            <th id="assignedHeader" style="display: none;">Assigned To</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="bookingsTableBody">
+          <tr>
+            <td colspan="7" style="text-align: center;">Loading...</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <!-- Assign Modal (Admin Only) -->
+  <div id="assignModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000;">
+    <div style="background: var(--bg-card); margin: 100px auto; padding: 30px; width: 90%; max-width: 450px; border-radius: 15px; border: 1px solid var(--primary); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+      <h3 style="margin-bottom: 20px; color: var(--text-main); font-size: 22px;">Assign Booking</h3>
+      <p id="modalBookingInfo" style="color: var(--text-muted); margin-bottom: 25px; padding: 15px; background: #141a2b; border-radius: 8px;"></p>
+      
+      <label style="display: block; margin-bottom: 10px; color: var(--text-muted); font-weight: 500;">Select Doctor/Nurse</label>
+      <select id="doctorSelect" style="width: 100%; padding: 12px 15px; border: 2px solid #1f2235; border-radius: 12px; background: #141a2b; color: var(--text-main); font-size: 15px; margin-bottom: 25px; outline: none;">
+        <option value="">Select Doctor/Nurse</option>
+      </select>
+      
+      <div style="display: flex; gap: 15px;">
+        <button onclick="confirmAssign()" class="btn-primary" style="flex: 1; padding: 12px; font-size: 16px;">Assign</button>
+        <button onclick="closeModal()" class="btn-cancel" style="flex: 1; padding: 12px; font-size: 16px;">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JS -->
+  <script>
+    // ========== Global Variables ==========
+    const userId = localStorage.getItem('userId');
+    const userRole = localStorage.getItem('userRole');
+    const userName = localStorage.getItem('userName');
+    let allBookings = [];
+    let currentBookingId = null;
+
+    // ========== Check Login ==========
+    if (!userId) {
+      alert("Please login first!");
+      window.location.href = "../login.html";
+    }
+
+    // ========== Display User Info ==========
+    document.getElementById('userName').textContent = userName || 'User';
+    document.getElementById('userRole').textContent = userRole || 'User';
+
+    // ========== Show Admin Only Elements ==========
+    if (userRole === 'admin') {
+      document.getElementById('admin-only-users').style.display = 'block';
+      document.getElementById('admin-stats').style.display = 'flex';
+      document.getElementById('admin-filters').style.display = 'block';
+      document.getElementById('assignedHeader').style.display = 'table-cell';
+      document.getElementById('tableTitle').textContent = 'All Bookings';
+    } else if (userRole === 'doctor') {
+      document.getElementById('tableTitle').textContent = 'My Assigned Bookings';
+    }
+
+    // ========== Load Bookings ==========
+    async function loadBookings() {
+      try {
+        let url = '/api/bookings/';
+        
+        if (userRole === 'admin') {
+          url = '/api/bookings/all';
+        } else if (userRole === 'doctor') {
+          url = `/api/bookings/assigned/${userId}`;
+        }
+
+        console.log("📤 Fetching from:", url);
+
+        const res = await fetch(url);
+        const bookings = await res.json();
+        
+        console.log("📥 Bookings:", bookings);
+        allBookings = bookings;
+        
+        renderBookings(bookings);
+        updateStats(bookings);
+
+      } catch (err) {
+        console.error("❌ Error loading bookings:", err);
+        document.getElementById('bookingsTableBody').innerHTML = `
+          <tr><td colspan="7" style="text-align: center; color: red;">Error loading data</td></tr>
+        `;
+      }
+    }
+
+    // ========== Render Bookings ==========
+  // ========== Render Bookings ==========
+function renderBookings(bookings) {
+  const tbody = document.getElementById('bookingsTableBody');
+  
+  if (bookings.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align: center;">No bookings found</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = bookings.map(booking => {
+    // ✅ هنا جوه الـ map - كل حاجة ليها access على booking
+    const statusClass = getStatusClass(booking.status);
+    const assignedTo = booking.assignedTo ? booking.assignedTo.name : '-';
+    
+    // ✅ Report Info - صح
+    const reportInfo = booking.report && booking.report.visited ? 
+      `<span style="color: #2ecc71;">✓ Visited</span>` : 
+      '<span style="color: var(--text-muted);">-</span>';
+    
+    let actions = '';
+    
+    if (userRole === 'admin') {
+      if (booking.status === 'pending') {
+        actions = `<button class="btn-approve" onclick="openAssignModal('${booking._id}', '${booking.patientName}', '${booking.service}')">Assign</button>`;
+      } else {
+        actions = `<button class="btn-cancel" onclick="updateStatus('${booking._id}', 'cancelled')">Cancel</button>`;
+      }
+    }
+
+    const assignedCell = userRole === 'admin' ? `<td data-label="Assigned To">${assignedTo}</td>` : '';
+
+    return `
+      <tr>
+        <td data-label="Patient">${booking.patientName}</td>
+        <td data-label="Service">${booking.service}</td>
+        <td data-label="Date">${new Date(booking.date).toLocaleDateString()}</td>
+        <td data-label="Time">${booking.time}</td>
+        <td data-label="Status"><span class="status-badge ${statusClass}">${booking.status}</span></td>
+        ${assignedCell}
+        <td data-label="Report">${reportInfo}</td>
+        <td data-label="Action">${actions}</td>
+      </tr>
+    `;
+  }).join('');
+}
+    
+
+    function getStatusClass(status) {
+      const classes = {
+        'pending': 'status-pending',
+        'assigned': 'status-assigned',
+        'in-progress': 'status-progress',
+        'completed': 'status-completed',
+        'cancelled': 'status-cancelled'
+      };
+      return classes[status] || '';
+    }
+
+    // ========== Update Stats ==========
+    function updateStats(bookings) {
+      if (userRole !== 'admin') return;
+      
+      document.getElementById('totalBookings').textContent = bookings.length;
+      document.getElementById('pendingBookings').textContent = bookings.filter(b => b.status === 'pending').length;
+      document.getElementById('assignedBookings').textContent = bookings.filter(b => b.status === 'assigned' || b.status === 'in-progress').length;
+    }
+
+    // ========== Filter Bookings ==========
+    function filterBookings() {
+      const filter = document.getElementById('statusFilter').value;
+      if (filter === 'all') {
+        renderBookings(allBookings);
+      } else {
+        renderBookings(allBookings.filter(b => b.status === filter));
+      }
+    }
+
+    // ========== Assign Modal Functions ==========
+    async function openAssignModal(bookingId, patientName, service) {
+      console.log("🚀 openAssignModal called:", bookingId, patientName, service);
+      
+      currentBookingId = bookingId;
+      document.getElementById('modalBookingInfo').textContent = `${patientName} - ${service}`;
+      document.getElementById('assignModal').style.display = 'block';
+      
+      try {
+        console.log("📤 Fetching staff...");
+        const res = await fetch('/api/auth/all-users');
+        const users = await res.json();
+        
+        console.log("👥 Users fetched:", users.length);
+        
+        const doctors = users.filter(u => u.role === 'doctor' || u.role === 'nurse');
+        console.log("👨‍⚕️ Doctors/Nurses:", doctors.length);
+        
+        const select = document.getElementById('doctorSelect');
+        select.innerHTML = '<option value="">Select Doctor/Nurse</option>' + 
+          doctors.map(d => `<option value="${d._id}">${d.name} (${d.role})</option>`).join('');
+          
+      } catch (err) {
+        console.error("❌ Error loading doctors:", err);
+        alert("Error loading staff list!");
+      }
+    }
+
+    function closeModal() {
+      console.log("❌ closeModal called");
+      document.getElementById('assignModal').style.display = 'none';
+      currentBookingId = null;
+    }
+
+    async function confirmAssign() {
+      console.log("✅ confirmAssign called!");
+      
+      const doctorId = document.getElementById('doctorSelect').value;
+      console.log("Selected doctor:", doctorId);
+      console.log("Current booking:", currentBookingId);
+      
+      if (!doctorId) {
+        alert("Please select a doctor/nurse");
+        return;
+      }
+
+      if (!currentBookingId) {
+        alert("Error: No booking selected");
+        return;
+      }
+
+      try {
+        console.log("📤 Sending assign request...");
+        const res = await fetch(`/api/bookings/assign/${currentBookingId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ doctorId: doctorId, adminId: userId })
+        });
+
+        const result = await res.json();
+        console.log("📥 Result:", result);
+
+        if (res.ok) {
+          alert("Assigned successfully ✅");
+          closeModal();
+          loadBookings();
+        } else {
+          alert("Error: " + result.message);
+        }
+      } catch (err) {
+        console.error("❌ Error assigning:", err);
+        alert("Error assigning booking!");
+      }
+    }
+
+    // ========== Update Status ==========
+    async function updateStatus(bookingId, status) {
+      try {
+        const res = await fetch(`/api/bookings/status/${bookingId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status })
+        });
+
+        const result = await res.json();
+        if (res.ok) {
+          alert("Status updated ✅");
+          loadBookings();
+        } else {
+          alert("Error: " + result.message);
+        }
+      } catch (err) {
+        console.error("Error updating status:", err);
+      }
+    }
+
+    // ========== Logout ==========
+    function logout() {
+      localStorage.clear();
+      window.location.href = "../login.html";
+    }
+
+    // ========== Initialize ==========
+    console.log("🚀 Page loaded, userRole:", userRole);
+    loadBookings();
+  </script>
+
+</body>
+</html>

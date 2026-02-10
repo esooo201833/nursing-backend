@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Users - CarePlus Admin</title>
+  <link rel="stylesheet" href="assets/css/dashboard.css">
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">Care<span>Plus</span></div>
+    <ul class="sidebar-menu">
+      <li><a href="index.html">Dashboard</a></li>
+      <li><a href="bookings.html">Bookings</a></li>
+      <li><a href="services.html">Services</a></li>
+      <li><a href="users.html" class="active">Users</a></li>
+      <li><a href="profile.html">Profile</a></li>
+      <li><a href="#" onclick="logout()">Logout</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    
+    <!-- Topbar -->
+    <header class="topbar">
+      <h1>Manage Staff</h1>
+      <div class="user-info">
+        <span id="adminName">Admin</span>
+      </div>
+    </header>
+
+    <!-- Add New Staff Form -->
+    <section class="bookings-table">
+      <h2>Add New Doctor / Nurse</h2>
+      <form id="addUserForm">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+          
+          <div>
+            <label style="display: block; margin-bottom: 8px; color: var(--text-muted); font-weight: 500;">Full Name</label>
+            <input type="text" id="staffName" required style="width: 100%; padding: 12px 15px; border: 2px solid #1f2235; border-radius: 12px; background: #141a2b; color: var(--text-main); font-size: 15px;">
+          </div>
+          
+          <div>
+            <label style="display: block; margin-bottom: 8px; color: var(--text-muted); font-weight: 500;">Email</label>
+            <input type="email" id="staffEmail" required style="width: 100%; padding: 12px 15px; border: 2px solid #1f2235; border-radius: 12px; background: #141a2b; color: var(--text-main); font-size: 15px;">
+          </div>
+          
+          <div>
+            <label style="display: block; margin-bottom: 8px; color: var(--text-muted); font-weight: 500;">Role</label>
+            <select id="staffRole" required style="width: 100%; padding: 12px 15px; border: 2px solid #1f2235; border-radius: 12px; background: #141a2b; color: var(--text-main); font-size: 15px;">
+              <option value="">Select Role</option>
+              <option value="doctor">Doctor</option>
+              <option value="nurse">Nurse</option>  <!-- ✅ غيّرنا من user لـ nurse -->
+            </select>
+          </div>
+          
+          <div>
+            <label style="display: block; margin-bottom: 8px; color: var(--text-muted); font-weight: 500;">Phone (Optional)</label>
+            <input type="tel" id="staffPhone" style="width: 100%; padding: 12px 15px; border: 2px solid #1f2235; border-radius: 12px; background: #141a2b; color: var(--text-main); font-size: 15px;">
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary" style="margin-top: 20px;">Create Account</button>
+      </form>
+
+      <!-- Generated Password Display -->
+      <div id="passwordDisplay" style="display: none; background: rgba(20,179,162,0.15); border: 1px solid var(--primary); padding: 15px; border-radius: 12px; margin-top: 20px; color: var(--text-main);">
+        <strong>Account Created! ✅</strong><br>
+        Generated Password: <code id="generatedPassword" style="background: var(--bg-dark); padding: 5px 10px; border-radius: 6px; color: var(--primary); font-size: 18px; font-weight: bold;"></code><br>
+        <small style="color: var(--text-muted); display: block; margin-top: 8px;">Please save this password and send it to the staff member.</small>
+      </div>
+    </section>
+
+    <!-- Staff List -->
+    <section class="bookings-table">
+      <h2>All Staff</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Phone</th>
+            <th>Created</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="staffTableBody">
+          <tr><td colspan="6" style="text-align: center;">Loading...</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <script>
+    // ✅ التحقق من Admin
+    const adminId = localStorage.getItem('userId');
+    const userRole = localStorage.getItem('userRole');
+
+    if (!adminId || userRole !== 'admin') {
+      alert("Access denied! Admins only.");
+      window.location.href = "../login.html";
+    }
+
+    document.getElementById('adminName').textContent = localStorage.getItem('userName');
+
+    // ✅ إضافة Staff جديد
+    document.getElementById('addUserForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const data = {
+        adminId: adminId,
+        name: document.getElementById('staffName').value,
+        email: document.getElementById('staffEmail').value,
+        role: document.getElementById('staffRole').value,  // ✅ هيجيب nurse أو doctor
+        phone: document.getElementById('staffPhone').value
+      };
+
+      try {
+        const res = await fetch('/api/admin/create-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        const result = await res.json();
+
+        if (res.ok) {
+          document.getElementById('generatedPassword').textContent = result.user.generatedPassword;
+          document.getElementById('passwordDisplay').style.display = 'block';
+          document.getElementById('addUserForm').reset();
+          loadStaff();
+        } else {
+          alert("Error: " + result.message);
+        }
+
+      } catch (err) {
+        console.error("Error:", err);
+        alert("Error creating account!");
+      }
+    });
+
+    // ✅ جيب كل Staff
+    async function loadStaff() {
+      try {
+        const res = await fetch('/api/admin/staff');
+        const staff = await res.json();
+
+        const tbody = document.getElementById('staffTableBody');
+        
+        if (staff.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No staff found</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = staff.map(person => `
+          <tr>
+            <td data-label="Name">${person.name}</td>
+            <td data-label="Email">${person.email}</td>
+            <td data-label="Role"><span class="role-badge role-${person.role}">${person.role}</span></td>
+            <td data-label="Phone">${person.phone || '-'}</td>
+            <td data-label="Created">${new Date(person.createdAt).toLocaleDateString()}</td>
+            <td data-label="Action">
+              <button class="btn-delete" onclick="deleteUser('${person._id}', '${person.name}')">Delete</button>
+            </td>
+          </tr>
+        `).join('');
+
+      } catch (err) {
+        console.error("Error loading staff:", err);
+      }
+    }
+
+    // ✅ حذف User
+    async function deleteUser(userId, name) {
+      if (!confirm(`Are you sure you want to delete ${name}?`)) return;
+
+      try {
+        const res = await fetch(`/api/admin/delete-user/${userId}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ adminId: adminId })
+        });
+
+        const result = await res.json();
+        
+        if (res.ok) {
+          alert(result.message);
+          loadStaff();
+        } else {
+          alert("Error: " + result.message);
+        }
+
+      } catch (err) {
+        console.error("Error:", err);
+      }
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = "../login.html";
+    }
+
+    loadStaff();
+  </script>
+
+</body>
+</html>

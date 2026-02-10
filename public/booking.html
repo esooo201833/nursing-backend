@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Book a Visit</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    /* ✅ استايلات إضافية للـ Booking Form */
+    .booking-section {
+      padding: 60px 0;
+      background: var(--bg-dark);
+      min-height: 100vh;
+    }
+    
+    .booking-form {
+      background: var(--bg-card);
+      padding: 40px;
+      border-radius: 20px;
+      max-width: 600px;
+      margin: 0 auto;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    
+    .booking-form h2 {
+      text-align: center;
+      margin-bottom: 30px;
+      color: var(--text-main);
+    }
+    
+    .form-group {
+      margin-bottom: 25px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 15px;
+      border: 2px solid #1f2235;
+      border-radius: 12px;
+      background: #141a2b;
+      color: var(--text-main);
+      font-size: 16px;
+      outline: none;
+      transition: 0.3s;
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 10px rgba(20,179,162,0.3);
+    }
+    
+    .form-group textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+    
+    .btn-submit {
+      width: 100%;
+      padding: 15px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    
+    .btn-submit:hover {
+      background: #12a08e;
+      transform: translateY(-2px);
+    }
+    
+    .login-notice {
+      text-align: center;
+      padding: 40px;
+      background: var(--bg-card);
+      border-radius: 20px;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    
+    .login-notice h2 {
+      color: var(--text-main);
+      margin-bottom: 20px;
+    }
+    
+    .login-notice a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <header class="navbar">
+    <div class="container">
+      <div class="logo">Care<span>Plus</span></div>
+      <nav>
+        <ul class="nav-links">
+          <li><a href="index.html">Home</a></li>
+          <li><a href="services.html">Services</a></li>
+          <li><a href="booking.html">Booking</a></li>
+          <li><a href="contact.html">Contact</a></li>
+          <li id="userSection" style="display: none;">
+            <span id="userName"></span> | <a href="#" onclick="logout()">Logout</a>
+          </li>
+          <li id="loginSection"><a href="login.html" class="btn-login">Login</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Page Header -->
+  <section class="page-header">
+    <div class="container">
+      <h1>Book Your Medical Visit</h1>
+      <p class="subtitle">Choose your service, select date & time, and we'll come to your home</p>
+    </div>
+  </section>
+
+  <!-- Booking Form -->
+  <section class="booking-section">
+    <div class="container">
+      
+      <!-- ✅ لو مش مسجل، اعرض رسالة -->
+      <div id="loginNotice" class="login-notice" style="display: none;">
+        <h2>Please Login First</h2>
+        <p>You need to login to book a service.</p>
+        <a href="login.html" class="btn-primary" style="display: inline-block; margin-top: 20px; padding: 12px 30px;">Login Now</a>
+      </div>
+
+      <!-- ✅ لو مسجل، اعرض الفورم -->
+      <form id="bookingForm" class="booking-form" style="display: none;">
+        <h2>Book a Service</h2>
+        
+        <div class="form-group">
+          <label for="service">Select Service</label>
+          <select id="service" name="service" required>
+            <option value="">-- Choose a Service --</option>
+            <option value="Home Nursing Visits">Home Nursing Visits</option>
+            <option value="Resident Nursing Care">Resident Nursing Care</option>
+            <option value="Elderly Care">Elderly Care</option>
+            <option value="Post-Surgery Care">Post-Surgery Care</option>
+            <option value="Chronic & Critical Care">Chronic & Critical Care</option>
+            <option value="Wound Care & Dressing">Wound Care & Dressing</option>
+            <option value="Medical Equipment Setup">Medical Equipment Setup</option>
+            <option value="Patient & Family Education">Patient & Family Education</option>
+            <option value="Specialized Care">Specialized Care</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="patientName">Full Name</label>
+          <input type="text" id="patientName" name="patientName" placeholder="Your Full Name" required>
+        </div>
+
+        <div class="form-group">
+          <label for="phone">Phone Number</label>
+          <input type="tel" id="phone" name="phone" placeholder="e.g. +20 100 000 0000" required>
+        </div>
+
+        <div class="form-group">
+          <label for="date">Select Date</label>
+          <input type="date" id="date" name="date" required>
+        </div>
+
+        <div class="form-group">
+          <label for="time">Select Time</label>
+          <input type="time" id="time" name="time" required>
+        </div>
+
+        <div class="form-group">
+          <label for="address">Address</label>
+          <textarea id="address" name="address" placeholder="Full Address for Home Visit" required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="notes">Notes (Optional)</label>
+          <textarea id="notes" name="notes" placeholder="Any special requirements..."></textarea>
+        </div>
+
+        <button type="submit" class="btn-submit">Confirm Booking</button>
+      </form>
+
+    </div>
+  </section>
+
+  <script>
+    // ✅ التحقق من الـ User
+    const userId = localStorage.getItem('userId');
+    const userName = localStorage.getItem('userName');
+
+    if (!userId) {
+      // مش مسجل - اعرض رسالة
+      document.getElementById('loginNotice').style.display = 'block';
+      document.getElementById('bookingForm').style.display = 'none';
+    } else {
+      // مسجل - اعرض الفورم
+      document.getElementById('loginNotice').style.display = 'none';
+      document.getElementById('bookingForm').style.display = 'block';
+      document.getElementById('userSection').style.display = 'inline';
+      document.getElementById('loginSection').style.display = 'none';
+      document.getElementById('userName').textContent = userName || 'User';
+    }
+
+    // ✅ إرسال الحجز
+    document.getElementById('bookingForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const data = {
+        userId: userId,
+        patientName: document.getElementById('patientName').value,
+        service: document.getElementById('service').value,
+        date: document.getElementById('date').value,
+        time: document.getElementById('time').value,
+        address: document.getElementById('address').value,
+        phone: document.getElementById('phone').value,
+        notes: document.getElementById('notes').value
+      };
+
+      console.log("📤 Sending booking:", data);
+
+      try {
+        const res = await fetch("/api/bookings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        });
+
+        const result = await res.json();
+        console.log("📥 Response:", result);
+
+        if (res.ok) {
+          alert("Booking created successfully! ✅ We'll contact you shortly.");
+          document.getElementById('bookingForm').reset();
+        } else {
+          alert("Error: " + result.message);
+        }
+
+      } catch (err) {
+        console.error("❌ Error:", err);
+        alert("Error connecting to server!");
+      }
+    });
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = "login.html";
+    }
+  </script>
+
+</body>
+</html>

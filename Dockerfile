@@ -1,20 +1,20 @@
-# استخدم صورة Node الرسمية
+# Use official Node.js image
 FROM node:20
 
-# عين فولدر العمل
+# Set working directory inside the container
 WORKDIR /app
 
-# انسخ package.json و package-lock.json من back-end
+# Copy package.json and package-lock.json from back-end
 COPY back-end/package*.json ./
 
-# ثبت dependencies
+# Install dependencies
 RUN npm install
 
-# انسخ كل ملفات back-end
+# Copy all back-end files
 COPY back-end .
 
-# افتح البورت اللي السيرفر بيشتغل عليه
+# Expose the port (Railway will use process.env.PORT)
 EXPOSE 3000
 
-# شغّل السيرفر
+# Start the server
 CMD ["node", "server.js"]

@@ -22,13 +22,7 @@ app.use(express.json());
 
 // ======== Static Files ========
 const publicPath = path.join(__dirname, "../public");
-console.log("📁 Serving files from:", publicPath);
-
 app.use(express.static(publicPath));
-
-app.get("/index.html", (req, res) => {
-  res.sendFile(path.join(publicPath, "index.html"));
-});
 
 // ======== Logging ========
 app.use((req, res, next) => {
@@ -77,14 +71,14 @@ app.use("/api/auth", authRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/admin", adminRoutes);
 
-// ======== Test Route ========
+// ======== Root Route ========
 app.get("/", (req, res) => {
-  res.send("Server is running 🚀");
+  // لو عايز يفتح index.html تلقائي
+  res.sendFile(path.join(publicPath, "index.html"));
 });
 
 // ======== تشغيل السيرفر ========
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`🌐 Frontend: http://localhost:${PORT}/index.html`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
